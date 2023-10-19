@@ -4,6 +4,7 @@ import { projectsSchema } from './mongoSchema/projectsSchema.mjs';
 import { userProjectsSchema } from './mongoSchema/userProjectsSchema.mjs';
 import { countProjectsSchema } from './mongoSchema/countProjectsSchema.mjs';
 import { verifiCodeSchema } from './mongoSchema/verifiCodeSchema.mjs';
+import { fundingsSchema } from './mongoSchema/fundingsSchema.mjs';
 import jwt from 'jsonwebtoken';
 
 const uri =
@@ -71,6 +72,7 @@ export const countProjects = mongoose.model(
   countProjectsSchema
 );
 export const verifiCode = mongoose.model('vefiriCode', verifiCodeSchema);
+export const fundings = mongoose.model('fundings', fundingsSchema);
 
 // 만료된 token, tokenExp '' 로 업데이트
 function removeExpiredTokens() {
