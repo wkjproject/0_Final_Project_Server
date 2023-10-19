@@ -20,6 +20,7 @@ app.use(cors({}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+//const bodyParser = require('body-parser');
 
 //일반 로그인 부분
 app.post('/login', async (req, res) => {
@@ -238,7 +239,7 @@ app.post('/verifiCode', async (req, res) => {
         message: '인증번호를 확인해주세요.',
       });
     }
-  } catch {}
+  } catch { }
 });
 
 // 비밀번호 찾기에서 새로운 비밀번호로 변경 부분
