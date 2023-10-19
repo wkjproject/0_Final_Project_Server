@@ -6,6 +6,7 @@ import {
   userProjects,
   countProjects,
   verifiCode,
+  fundings,
 } from './mongo.mjs';
 import cookieParser from 'cookie-parser';
 import bcrypt from 'bcrypt';
@@ -51,6 +52,7 @@ app.post('/login', async (req, res) => {
           token: userFind.token,
           userName: userFind.userName,
           _id: userFind._id,
+          userId: userFind.userId,
         });
       });
     } else {
@@ -262,12 +264,36 @@ app.post('/newPassword', async (req, res) => {
   }
 });
 
+// 마이페이지 펀딩프로젝트 부분
+app.post('/fundingProject', async (req, res) => {
+  try {
+    const userFindIds = await fundings
+      .find({ user_id: req.body.user_id })
+      .exec();
+    const projectIds = userFindIds.map((item) => item.project_id);
+
+    const matchingProjects = [];
+    for (const projectId of projectIds) {
+      const project = await projects.find({ proj_id: projectId }).exec();
+      matchingProjects.push(project);
+    }
+
+    return res.status(200).json({
+      fundings: userFindIds,
+      projects: matchingProjects,
+    });
+  } catch (err) {
+    console.log('server.mjs fundingProject', err);
+  }
+});
+
 // 사용자 인증부분
 app.get('/auth', middleAuth, (req, res) => {
   try {
     // 사용자 _id(몽고DB 고유 _id) + 로컬스토리지 토큰 과 서버에 있는 _id + 토큰을 비교해 일치할경우 다음과같은 응답
     res.status(200).json({
       _id: req.foundUser._id, // middleAuth 에서 제공한 foundUser
+      userId: req.foundUser.userId,
       isAdmin: req.foundUser.role === 0 ? false : true, // role이 0이면 일반사용자, 0이아니면 운영자
       isLogin: true,
     });
