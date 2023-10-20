@@ -313,6 +313,39 @@ app.get('/projName', async (req, res) => {
   }
 });
 
+// 프로젝트 상태: projStatus
+app.get('/projStatus', async (req, res) => {
+  try {
+    const projStatus = await projects.find({}, 'projStatus');
+    res.status(200).json({ projStatus });
+  } catch (err) {
+    console.log(err);
+  }
+});
+
+// 프로젝트 승인/거절 페이지에서 프로젝트 승인상태 변경하는 부분
+app.post('/newProjStatus', async (req, res) => {
+  try {
+    const newProjStatusUpdate = await projects.findOneAndUpdate(
+      { projStatus: req.body.projStatus },
+    );
+
+    if (newProjStatusUpdate) {
+      return res
+        .status(200)
+        .json({ newProjStatusSuccess: true, message: '프로젝트 상태변경 성공' });
+    }
+    if (!newProjStatusUpdate) {
+      return res
+        .status(200)
+        .json({ newProjStatusSuccess: false, message: '프로젝트 상태변경 실패' });
+    }
+  } catch (err) {
+    console.log('server.mjs newProjStatus', err);
+  }
+});
+
+
 app.listen(port, () => {
   console.log(`http://localhost:${port}`);
   console.log(`${port}번 포트`);
