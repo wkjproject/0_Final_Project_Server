@@ -71,7 +71,7 @@ export const countProjects = mongoose.model(
   'countProjects',
   countProjectsSchema
 );
-export const verifiCode = mongoose.model('vefiriCode', verifiCodeSchema);
+export const verifiCode = mongoose.model('verifiCode', verifiCodeSchema);
 export const fundings = mongoose.model('fundings', fundingsSchema);
 
 // 만료된 token, tokenExp '' 로 업데이트

@@ -287,6 +287,32 @@ app.post('/fundingProject', async (req, res) => {
   }
 });
 
+app.post('/cancelPayDB', async (req, res) => {
+  try {
+    // MongoDB에서 해당 funding_id와 일치하는 데이터를 삭제
+    const result = await fundings.deleteOne({
+      funding_id: req.body.funding_id,
+    });
+
+    // 삭제 됐을 때
+    if (result) {
+      res
+        .status(200)
+        .json({ cancelPaySuccess: true, message: '결제가 취소되었습니다.' });
+    } else {
+      // 해당 funding_id와 일치하는 데이터가 없을 때
+      res.status(404).json({
+        cancelPaySuccess: false,
+        message: '데이터를 찾을 수 없습니다.',
+      });
+    }
+  } catch (error) {
+    // 오류 처리
+    console.error(error);
+    res.status(500).json({ message: '서버 오류입니다.' });
+  }
+});
+
 // 사용자 인증부분
 app.get('/auth', middleAuth, (req, res) => {
   try {
