@@ -20,6 +20,7 @@ app.use(cors({}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+//const bodyParser = require('body-parser');
 
 //일반 로그인 부분
 app.post('/login', async (req, res) => {
@@ -238,7 +239,7 @@ app.post('/verifiCode', async (req, res) => {
         message: '인증번호를 확인해주세요.',
       });
     }
-  } catch {}
+  } catch { }
 });
 
 // 비밀번호 찾기에서 새로운 비밀번호로 변경 부분
@@ -337,6 +338,39 @@ app.get('/projName', async (req, res) => {
     console.log(err);
   }
 });
+
+// 프로젝트 상태: projStatus
+app.get('/projStatus', async (req, res) => {
+  try {
+    const projStatus = await projects.find({}, 'projStatus');
+    res.status(200).json({ projStatus });
+  } catch (err) {
+    console.log(err);
+  }
+});
+
+// 프로젝트 승인/거절 페이지에서 프로젝트 승인상태 변경하는 부분
+app.post('/newProjStatus', async (req, res) => {
+  try {
+    const newProjStatusUpdate = await projects.findOneAndUpdate(
+      { projStatus: req.body.projStatus },
+    );
+
+    if (newProjStatusUpdate) {
+      return res
+        .status(200)
+        .json({ newProjStatusSuccess: true, message: '프로젝트 상태변경 성공' });
+    }
+    if (!newProjStatusUpdate) {
+      return res
+        .status(200)
+        .json({ newProjStatusSuccess: false, message: '프로젝트 상태변경 실패' });
+    }
+  } catch (err) {
+    console.log('server.mjs newProjStatus', err);
+  }
+});
+
 
 app.listen(port, () => {
   console.log(`http://localhost:${port}`);
