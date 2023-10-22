@@ -1,24 +1,23 @@
 import mongoose from 'mongoose';
-import { users, projects } from '../mongo.mjs';
 
 export const userProjectsSchema = new mongoose.Schema({
-  user_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'users',
+  users_id: {
+    type: Number,
   },
   userLikeProject: {
-    type: [mongoose.Schema.Types.ObjectId],
-    ref: 'projects',
+    type: [Number],
   },
   userFundProject: {
-    type: [mongoose.Schema.Types.ObjectId],
-    ref: 'projects',
+    type: [Number],
   },
-  userFundReward: {
-    type: [String],
-  },
+  userFundReward: [
+    {
+      projRewardName: {
+        type: String,
+      },
+    },
+  ],
   userMadeProject: {
-    type: [mongoose.Schema.Types.ObjectId],
-    ref: 'projects',
+    type: [Number],
   },
 });
