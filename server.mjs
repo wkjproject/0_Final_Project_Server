@@ -363,15 +363,6 @@ app.get('/projName', async (req, res) => {
   }
 });
 
-app.get('/projects', async (req, res) => {
-  try {
-    const projects = await projects.find({ projects });
-    res.status(200).json({ projects });
-  } catch (err) {
-    console.log(err);
-  }
-});
-
 // 프로젝트 상태: projStatus
 app.get('/projStatus', async (req, res) => {
   try {
