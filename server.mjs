@@ -4,7 +4,6 @@ import {
   users,
   projects,
   userprojects,
-  countprojects,
   verifiCode,
   fundings,
 } from './mongo.mjs';
@@ -330,7 +329,7 @@ app.post('/madeProject', async (req, res) => {
     }
     if (!userMade) {
       return res.status(200).json({
-        message: '제작하신 프로젝트가 없습니다.',
+        message: '제작 프로젝트가 없습니다.',
       });
     }
   } catch (err) {
@@ -338,6 +337,53 @@ app.post('/madeProject', async (req, res) => {
   }
 });
 
+// 마이페이지 관심프로젝트 부분
+
+app.post('/likeProject', async (req, res) => {
+  try {
+    // userid정보로 바로 userprojects에 들어가서 userLikeProject를 가져와
+    // projects 에서 userLikeProject와 proj_id가 같은걸 가져옴
+    const userLike = await userprojects
+      .findOne({ users_id: req.body.user_id })
+      .exec();
+
+    if (userLike) {
+      const userLikeProject = await projects
+        .find({ proj_id: { $in: userLike.userLikeProject } })
+        .exec();
+      return res.status(200).json({
+        likes: userLikeProject,
+      });
+    }
+    if (userLike) {
+      return res.status(200).json({
+        message: '관심 프로젝트가 없습니다.',
+      });
+    }
+  } catch (err) {
+    console.log('server.mjs likeProject', err);
+  }
+});
+
+// 마이프로젝트 관심 프로젝트 삭제 부분
+
+app.post('/cancelLike', async (req, res) => {
+  try {
+    // 받아온 user_id로 userprojects에서 userLikeProject를 확인하고
+    // 받아온 proj_id를 userLikeProject에서 제외시키고 갱신함
+    const userCancelLike = await userprojects.updateOne(
+      { users_id: req.body.user_id },
+      { $pull: { userLikeProject: req.body.proj_id } }
+    );
+    if (userCancelLike) {
+      return res.status(200).json({ cancelLikeSuccess: true });
+    } else {
+      return res.status(200).json({ cancelLikeSuccess: false });
+    }
+  } catch (err) {
+    console.log('server.mjs cancelLike', err);
+  }
+});
 // 사용자 인증부분
 app.get('/auth', middleAuth, (req, res) => {
   try {
@@ -363,6 +409,7 @@ app.get('/projName', async (req, res) => {
   }
 });
 
+// 프로젝트 모두 가져오는 예시
 app.get('/projects', async (req, res) => {
   try {
     const projName = await projects.find({});
