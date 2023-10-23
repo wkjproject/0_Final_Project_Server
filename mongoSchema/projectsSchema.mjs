@@ -3,8 +3,7 @@ import { users } from '../mongo.mjs';
 
 export const projectsSchema = new mongoose.Schema({
   userMade_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'users',
+    type: Number,
   },
   projName: {
     type: String,
@@ -39,6 +38,7 @@ export const projectsSchema = new mongoose.Schema({
     },
   ],
   projStatus: {
-    type: Number,
+    type: String,
+    default: '0',
   },
 });

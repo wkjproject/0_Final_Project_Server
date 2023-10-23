@@ -3,8 +3,8 @@ import cors from 'cors';
 import {
   users,
   projects,
-  userProjects,
-  countProjects,
+  userprojects,
+  countprojects,
   verifiCode,
   fundings,
 } from './mongo.mjs';
@@ -239,7 +239,7 @@ app.post('/verifiCode', async (req, res) => {
         message: '인증번호를 확인해주세요.',
       });
     }
-  } catch { }
+  } catch {}
 });
 
 // 비밀번호 찾기에서 새로운 비밀번호로 변경 부분
@@ -288,6 +288,56 @@ app.post('/fundingProject', async (req, res) => {
   }
 });
 
+// 마이페이지 펀딩프로젝트에서 사용자 결제 취소하는 부분
+app.post('/cancelPayDB', async (req, res) => {
+  try {
+    // MongoDB에서 해당 funding_id와 일치하는 데이터를 삭제
+    const result = await fundings.deleteOne({
+      funding_id: req.body.funding_id,
+    });
+
+    // 삭제 됐을 때
+    if (result) {
+      res
+        .status(200)
+        .json({ cancelPaySuccess: true, message: '결제가 취소되었습니다.' });
+    } else {
+      // 해당 funding_id와 일치하는 데이터가 없을 때
+      res.status(404).json({
+        cancelPaySuccess: false,
+        message: '데이터를 찾을 수 없습니다.',
+      });
+    }
+  } catch (error) {
+    // 오류 처리
+    console.error(error);
+    res.status(500).json({ message: '서버 오류입니다.' });
+  }
+});
+
+// 마이페이지 제작프로젝트 부분
+
+app.post('/madeProject', async (req, res) => {
+  try {
+    // userid정보로 바로 projects에 들어가서 userMade_id 가 userid랑 같은거 가져오면됨
+    const userMade = await projects
+      .find({ userMade_id: req.body.user_id })
+      .exec();
+    if (userMade) {
+      return res.status(200).json({
+        mades: userMade,
+      });
+    }
+    if (!userMade) {
+      return res.status(200).json({
+        message: '제작하신 프로젝트가 없습니다.',
+      });
+    }
+  } catch (err) {
+    console.log('server.mjs madeProject', err);
+  }
+});
+
 // 사용자 인증부분
 app.get('/auth', middleAuth, (req, res) => {
   try {
@@ -310,6 +360,40 @@ app.get('/projName', async (req, res) => {
     res.status(200).json({ projName });
   } catch (err) {
     console.log(err);
+  }
+});
+
+// 프로젝트 상태: projStatus
+app.get('/projStatus', async (req, res) => {
+  try {
+    const projStatus = await projects.find({}, 'projStatus');
+    res.status(200).json({ projStatus });
+  } catch (err) {
+    console.log(err);
+  }
+});
+
+// 프로젝트 승인/거절 페이지에서 프로젝트 승인상태 변경하는 부분
+app.post('/newProjStatus', async (req, res) => {
+  try {
+    const newProjStatusUpdate = await projects.findOneAndUpdate({
+      projStatus: req.body.projStatus,
+    });
+
+    if (newProjStatusUpdate) {
+      return res.status(200).json({
+        newProjStatusSuccess: true,
+        message: '프로젝트 상태변경 성공',
+      });
+    }
+    if (!newProjStatusUpdate) {
+      return res.status(200).json({
+        newProjStatusSuccess: false,
+        message: '프로젝트 상태변경 실패',
+      });
+    }
+  } catch (err) {
+    console.log('server.mjs newProjStatus', err);
   }
 });
 
