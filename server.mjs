@@ -239,7 +239,7 @@ app.post('/verifiCode', async (req, res) => {
         message: '인증번호를 확인해주세요.',
       });
     }
-  } catch {}
+  } catch { }
 });
 
 // 비밀번호 찾기에서 새로운 비밀번호로 변경 부분
@@ -358,6 +358,15 @@ app.get('/projName', async (req, res) => {
   try {
     const projName = await projects.find({}, 'projName');
     res.status(200).json({ projName });
+  } catch (err) {
+    console.log(err);
+  }
+});
+
+app.get('/projects', async (req, res) => {
+  try {
+    const projects = await projects.find({});
+    res.status(200).json({ projects });
   } catch (err) {
     console.log(err);
   }
