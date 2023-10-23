@@ -91,4 +91,4 @@ function removeExpiredTokens() {
     });
 }
 
-setInterval(removeExpiredTokens, 600000); // 10분마다 DB에서 만료된 토큰 삭제
+/* setInterval(removeExpiredTokens, 600000); // 10분마다 DB에서 만료된 토큰 삭제 */
