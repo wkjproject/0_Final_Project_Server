@@ -60,8 +60,8 @@ export const projectsSchema = new mongoose.Schema({
   ],
   projFundDate: [
     {
-      projFundStartDate: Date,
-      projFundEndDate: Date,
+      projFundStartDate: String,
+      projFundEndDate: String,
     },
   ],
   projStatus: {

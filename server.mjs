@@ -116,8 +116,12 @@ app.get('/logout', middleAuth, async (req, res) => {
   try {
     const logoutUser = await users.findOneAndUpdate(
       { _id: req.foundUser._id }, // middleAuth 의 foundUser
-      { token: '' },
-      { tokenExp: null }
+      {
+        $set: {
+          token: '',
+          tokenExp: null,
+        },
+      }
     );
     if (!logoutUser) {
       return res.json({ logoutSuccess: false });
@@ -384,6 +388,57 @@ app.post('/cancelLike', async (req, res) => {
     console.log('server.mjs cancelLike', err);
   }
 });
+
+// 마이페이지 회원정보 수정 부분
+
+app.post('/userProfileModify', async (req, res) => {
+  const {
+    userId,
+    userNameChanged,
+    userPhoneNumChanged,
+    userAddrChanged,
+    userPassword,
+  } = req.body;
+  try {
+    if (userPassword === undefined) {
+      // userPassword가 undefined 일때
+      // userId 기준으로 회원을 찾아서 업데이트
+      const userModifyData = await users.findOneAndUpdate(
+        { userId: userId },
+        {
+          $set: {
+            userName: userNameChanged,
+            userPhoneNum: userPhoneNumChanged,
+            userAddr: userAddrChanged,
+          },
+        }
+      );
+      console.log('위', userModifyData);
+      return res.status(200).json({ userProfileModifySuccess: true });
+    } else if (userPassword !== undefined) {
+      // userPassword가 undefined 가 아닐때
+      const hashedPwd = await bcrypt.hash(userPassword, 10);
+      const userModifyData = await users.findOneAndUpdate(
+        { userId: userId },
+        {
+          $set: {
+            userName: userNameChanged,
+            userPhoneNum: userPhoneNumChanged,
+            userPassword: hashedPwd,
+            userAddr: userAddrChanged,
+          },
+        }
+      );
+      console.log('아래', userModifyData);
+      return res.status(200).json({ userProfileModifySuccess: true });
+    } else {
+      return res.status(200).json({ userProfileModifySuccess: false });
+    }
+  } catch (err) {
+    console.log('server.mjs userProfileModify', err);
+  }
+});
+
 // 사용자 인증부분
 app.get('/auth', middleAuth, (req, res) => {
   try {
@@ -393,6 +448,10 @@ app.get('/auth', middleAuth, (req, res) => {
       userId: req.foundUser.userId,
       isAdmin: req.foundUser.role === 0 ? false : true, // role이 0이면 일반사용자, 0이아니면 운영자
       isLogin: true,
+      userAddr: req.foundUser.userAddr,
+      userName: req.foundUser.userName,
+      userPhoneNum: req.foundUser.userPhoneNum,
+      userMail: req.foundUser.userMail,
     });
   } catch (err) {
     console.log('server.mjs', err);
