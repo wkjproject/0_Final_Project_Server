@@ -2,7 +2,6 @@ import mongoose from 'mongoose';
 import { usersSchema } from './mongoSchema/usersSchema.mjs';
 import { projectsSchema } from './mongoSchema/projectsSchema.mjs';
 import { userProjectsSchema } from './mongoSchema/userProjectsSchema.mjs';
-import { countProjectsSchema } from './mongoSchema/countProjectsSchema.mjs';
 import { verifiCodeSchema } from './mongoSchema/verifiCodeSchema.mjs';
 import { fundingsSchema } from './mongoSchema/fundingsSchema.mjs';
 import jwt from 'jsonwebtoken';
@@ -25,7 +24,7 @@ usersSchema.methods.generateToken = function (cb) {
   const tokenExp = new Date();
   const secretKey = 'team6mongo';
 
-  tokenExp.setMinutes(tokenExp.getMinutes() + 1); // 현재 시간에 1분을 추가
+  tokenExp.setMinutes(tokenExp.getMinutes() + 60); // 현재 시간에 60분을 추가
   // 사용자의 ID를 토큰 페이로드로 설정합니다.
   const payload = {
     _id: this._id, // 예: 사용자의 MongoDB _id
@@ -66,12 +65,8 @@ usersSchema.statics.findByToken = async function (token) {
 
 export const users = mongoose.model('users', usersSchema);
 export const projects = mongoose.model('projects', projectsSchema);
-export const userProjects = mongoose.model('userProjects', userProjectsSchema);
-export const countProjects = mongoose.model(
-  'countProjects',
-  countProjectsSchema
-);
-export const verifiCode = mongoose.model('vefiriCode', verifiCodeSchema);
+export const userprojects = mongoose.model('userprojects', userProjectsSchema);
+export const verifiCode = mongoose.model('verifiCode', verifiCodeSchema);
 export const fundings = mongoose.model('fundings', fundingsSchema);
 
 // 만료된 token, tokenExp '' 로 업데이트
@@ -91,4 +86,4 @@ function removeExpiredTokens() {
     });
 }
 
-setInterval(removeExpiredTokens, 600000); // 10분마다 DB에서 만료된 토큰 삭제
+/* setInterval(removeExpiredTokens, 600000); // 10분마다 DB에서 만료된 토큰 삭제 */

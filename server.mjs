@@ -3,8 +3,7 @@ import cors from 'cors';
 import {
   users,
   projects,
-  userProjects,
-  countProjects,
+  userprojects,
   verifiCode,
   fundings,
 } from './mongo.mjs';
@@ -52,6 +51,9 @@ app.post('/login', async (req, res) => {
           message: '로그인 성공',
           token: userFind.token,
           userName: userFind.userName,
+          userAddr: userFind.userAddr,
+          userPhoneNum: userFind.userPhoneNum,
+          userMail: userFind.userMail,
           _id: userFind._id,
           userId: userFind.userId,
         });
@@ -117,8 +119,12 @@ app.get('/logout', middleAuth, async (req, res) => {
   try {
     const logoutUser = await users.findOneAndUpdate(
       { _id: req.foundUser._id }, // middleAuth 의 foundUser
-      { token: '' },
-      { tokenExp: null }
+      {
+        $set: {
+          token: '',
+          tokenExp: null,
+        },
+      }
     );
     if (!logoutUser) {
       return res.json({ logoutSuccess: false });
@@ -239,7 +245,7 @@ app.post('/verifiCode', async (req, res) => {
         message: '인증번호를 확인해주세요.',
       });
     }
-  } catch { }
+  } catch {}
 });
 
 // 비밀번호 찾기에서 새로운 비밀번호로 변경 부분
@@ -288,6 +294,152 @@ app.post('/fundingProject', async (req, res) => {
   }
 });
 
+// 마이페이지 펀딩프로젝트에서 사용자 결제 취소하는 부분
+app.post('/cancelPayDB', async (req, res) => {
+  try {
+    // MongoDB에서 해당 funding_id와 일치하는 데이터를 삭제
+    const result = await fundings.deleteOne({
+      funding_id: req.body.funding_id,
+    });
+
+    // 삭제 됐을 때
+    if (result) {
+      res
+        .status(200)
+        .json({ cancelPaySuccess: true, message: '결제가 취소되었습니다.' });
+    } else {
+      // 해당 funding_id와 일치하는 데이터가 없을 때
+      res.status(404).json({
+        cancelPaySuccess: false,
+        message: '데이터를 찾을 수 없습니다.',
+      });
+    }
+  } catch (error) {
+    // 오류 처리
+    console.error(error);
+    res.status(500).json({ message: '서버 오류입니다.' });
+  }
+});
+
+// 마이페이지 제작프로젝트 부분
+
+app.post('/madeProject', async (req, res) => {
+  try {
+    // userid정보로 바로 projects에 들어가서 userMade_id 가 userid랑 같은거 가져오면됨
+    const userMade = await projects
+      .find({ userMade_id: req.body.user_id })
+      .exec();
+    if (userMade) {
+      return res.status(200).json({
+        mades: userMade,
+      });
+    }
+    if (!userMade) {
+      return res.status(200).json({
+        message: '제작 프로젝트가 없습니다.',
+      });
+    }
+  } catch (err) {
+    console.log('server.mjs madeProject', err);
+  }
+});
+
+// 마이페이지 관심프로젝트 부분
+
+app.post('/likeProject', async (req, res) => {
+  try {
+    // userid정보로 바로 userprojects에 들어가서 userLikeProject를 가져와
+    // projects 에서 userLikeProject와 proj_id가 같은걸 가져옴
+    const userLike = await userprojects
+      .findOne({ users_id: req.body.user_id })
+      .exec();
+
+    if (userLike) {
+      const userLikeProject = await projects
+        .find({ proj_id: { $in: userLike.userLikeProject } })
+        .exec();
+      return res.status(200).json({
+        likes: userLikeProject,
+      });
+    }
+    if (userLike) {
+      return res.status(200).json({
+        message: '관심 프로젝트가 없습니다.',
+      });
+    }
+  } catch (err) {
+    console.log('server.mjs likeProject', err);
+  }
+});
+
+// 마이프로젝트 관심 프로젝트 삭제 부분
+
+app.post('/cancelLike', async (req, res) => {
+  try {
+    // 받아온 user_id로 userprojects에서 userLikeProject를 확인하고
+    // 받아온 proj_id를 userLikeProject에서 제외시키고 갱신함
+    const userCancelLike = await userprojects.updateOne(
+      { users_id: req.body.user_id },
+      { $pull: { userLikeProject: req.body.proj_id } }
+    );
+    if (userCancelLike) {
+      return res.status(200).json({ cancelLikeSuccess: true });
+    } else {
+      return res.status(200).json({ cancelLikeSuccess: false });
+    }
+  } catch (err) {
+    console.log('server.mjs cancelLike', err);
+  }
+});
+
+// 마이페이지 회원정보 수정 부분
+
+app.post('/userProfileModify', async (req, res) => {
+  const {
+    userId,
+    userNameChanged,
+    userPhoneNumChanged,
+    userAddrChanged,
+    userPassword,
+  } = req.body;
+  try {
+    if (userPassword === undefined) {
+      // userPassword가 undefined 일때
+      // userId 기준으로 회원을 찾아서 업데이트
+      const userModifyData = await users.findOneAndUpdate(
+        { userId: userId },
+        {
+          $set: {
+            userName: userNameChanged,
+            userPhoneNum: userPhoneNumChanged,
+            userAddr: userAddrChanged,
+          },
+        }
+      );
+      return res.status(200).json({ userProfileModifySuccess: true });
+    } else if (userPassword !== undefined) {
+      // userPassword가 undefined 가 아닐때
+      const hashedPwd = await bcrypt.hash(userPassword, 10);
+      const userModifyData = await users.findOneAndUpdate(
+        { userId: userId },
+        {
+          $set: {
+            userName: userNameChanged,
+            userPhoneNum: userPhoneNumChanged,
+            userPassword: hashedPwd,
+            userAddr: userAddrChanged,
+          },
+        }
+      );
+      return res.status(200).json({ userProfileModifySuccess: true });
+    } else {
+      return res.status(200).json({ userProfileModifySuccess: false });
+    }
+  } catch (err) {
+    console.log('server.mjs userProfileModify', err);
+  }
+});
+
 // 사용자 인증부분
 app.get('/auth', middleAuth, (req, res) => {
   try {
@@ -297,6 +449,10 @@ app.get('/auth', middleAuth, (req, res) => {
       userId: req.foundUser.userId,
       isAdmin: req.foundUser.role === 0 ? false : true, // role이 0이면 일반사용자, 0이아니면 운영자
       isLogin: true,
+      userAddr: req.foundUser.userAddr,
+      userName: req.foundUser.userName,
+      userPhoneNum: req.foundUser.userPhoneNum,
+      userMail: req.foundUser.userMail,
     });
   } catch (err) {
     console.log('server.mjs', err);
@@ -307,6 +463,16 @@ app.get('/auth', middleAuth, (req, res) => {
 app.get('/projName', async (req, res) => {
   try {
     const projName = await projects.find({}, 'projName');
+    res.status(200).json({ projName });
+  } catch (err) {
+    console.log(err);
+  }
+});
+
+// 프로젝트 모두 가져오는 예시
+app.get('/projects', async (req, res) => {
+  try {
+    const projName = await projects.find({});
     res.status(200).json({ projName });
   } catch (err) {
     console.log(err);
@@ -326,24 +492,27 @@ app.get('/projStatus', async (req, res) => {
 // 프로젝트 승인/거절 페이지에서 프로젝트 승인상태 변경하는 부분
 app.post('/newProjStatus', async (req, res) => {
   try {
-    const newProjStatusUpdate = await projects.findOneAndUpdate(
-      { projStatus: req.body.projStatus },
-    );
+    const newProjStatusUpdate = await projects.findOneAndUpdate({
+      projStatus: req.body.projStatus,
+    });
 
     if (newProjStatusUpdate) {
-      return res
-        .status(200)
-        .json({ newProjStatusSuccess: true, message: '프로젝트 상태변경 성공' });
+      return res.status(200).json({
+        newProjStatusSuccess: true,
+        message: '프로젝트 상태변경 성공',
+      });
     }
     if (!newProjStatusUpdate) {
-      return res
-        .status(200)
-        .json({ newProjStatusSuccess: false, message: '프로젝트 상태변경 실패' });
+      return res.status(200).json({
+        newProjStatusSuccess: false,
+        message: '프로젝트 상태변경 실패',
+      });
     }
   } catch (err) {
     console.log('server.mjs newProjStatus', err);
   }
 });
+
 
 // 회원관리 페이지에서 회원관리 정보 조회하는 부분
 app.get('/usersInfo', async(req, res) => {
@@ -354,7 +523,6 @@ app.get('/usersInfo', async(req, res) => {
     console.log('server.mjs usersInfo', err);
   }
 })
-
 
 app.listen(port, () => {
   console.log(`http://localhost:${port}`);

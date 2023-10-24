@@ -2,13 +2,30 @@ import mongoose from 'mongoose';
 import { users } from '../mongo.mjs';
 
 export const projectsSchema = new mongoose.Schema({
+  proj_id: {
+    type: Number,
+  },
+  projLike: {
+    type: Number,
+  },
+  projFundGoal: {
+    type: Number,
+  },
+  projFundCollect: {
+    type: Number,
+  },
+  projFundUserCount: {
+    type: Number,
+  },
   userMade_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'users',
+    type: Number,
   },
   projName: {
     type: String,
     required: true,
+  },
+  projRegion: {
+    type: Number,
   },
   projMainImgPath: {
     type: String,
@@ -26,6 +43,15 @@ export const projectsSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  projPlace: {
+    type: String,
+  },
+  projAddr: {
+    type: String,
+  },
+  projDate: {
+    type: [String],
+  },
   projReward: [
     {
       projRewardName: String,
@@ -34,11 +60,18 @@ export const projectsSchema = new mongoose.Schema({
   ],
   projFundDate: [
     {
-      projFundStartDate: Date,
-      projFundEndDate: Date,
+      projFundStartDate: String,
+      projFundEndDate: String,
     },
   ],
   projStatus: {
-    type: Number,
+    type: String,
+    default: '0',
+  },
+  comment: {
+    type: String,
+  },
+  QnA: {
+    type: String,
   },
 });
