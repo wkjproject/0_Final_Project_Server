@@ -513,6 +513,17 @@ app.post('/newProjStatus', async (req, res) => {
   }
 });
 
+
+// 회원관리 페이지에서 회원관리 정보 조회하는 부분
+app.get('/usersInfo', async(req, res) => {
+  try {
+    const userData = await users.find({}, 'userId userName userMail userPhoneNum userAddr role');
+    res.status(200).json(userData);
+  } catch (err) {
+    console.log('server.mjs usersInfo', err);
+  }
+})
+
 app.listen(port, () => {
   console.log(`http://localhost:${port}`);
   console.log(`${port}번 포트`);
