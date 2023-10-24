@@ -54,6 +54,7 @@ app.post('/login', async (req, res) => {
           userName: userFind.userName,
           userAddr: userFind.userAddr,
           userPhoneNum: userFind.userPhoneNum,
+          userMail: userFind.userMail,
           _id: userFind._id,
           userId: userFind.userId,
         });
