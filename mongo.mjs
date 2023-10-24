@@ -2,7 +2,6 @@ import mongoose from 'mongoose';
 import { usersSchema } from './mongoSchema/usersSchema.mjs';
 import { projectsSchema } from './mongoSchema/projectsSchema.mjs';
 import { userProjectsSchema } from './mongoSchema/userProjectsSchema.mjs';
-import { countProjectsSchema } from './mongoSchema/countProjectsSchema.mjs';
 import { verifiCodeSchema } from './mongoSchema/verifiCodeSchema.mjs';
 import { fundingsSchema } from './mongoSchema/fundingsSchema.mjs';
 import jwt from 'jsonwebtoken';
@@ -67,10 +66,6 @@ usersSchema.statics.findByToken = async function (token) {
 export const users = mongoose.model('users', usersSchema);
 export const projects = mongoose.model('projects', projectsSchema);
 export const userprojects = mongoose.model('userprojects', userProjectsSchema);
-export const countprojects = mongoose.model(
-  'countprojects',
-  countProjectsSchema
-);
 export const verifiCode = mongoose.model('verifiCode', verifiCodeSchema);
 export const fundings = mongoose.model('fundings', fundingsSchema);
 

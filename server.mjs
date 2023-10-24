@@ -4,7 +4,6 @@ import {
   users,
   projects,
   userprojects,
-  countprojects,
   verifiCode,
   fundings,
 } from './mongo.mjs';
@@ -120,8 +119,12 @@ app.get('/logout', middleAuth, async (req, res) => {
   try {
     const logoutUser = await users.findOneAndUpdate(
       { _id: req.foundUser._id }, // middleAuth 의 foundUser
-      { token: '' },
-      { tokenExp: null }
+      {
+        $set: {
+          token: '',
+          tokenExp: null,
+        },
+      }
     );
     if (!logoutUser) {
       return res.json({ logoutSuccess: false });
@@ -242,7 +245,7 @@ app.post('/verifiCode', async (req, res) => {
         message: '인증번호를 확인해주세요.',
       });
     }
-  } catch { }
+  } catch {}
 });
 
 // 비밀번호 찾기에서 새로운 비밀번호로 변경 부분
@@ -333,11 +336,107 @@ app.post('/madeProject', async (req, res) => {
     }
     if (!userMade) {
       return res.status(200).json({
-        message: '제작하신 프로젝트가 없습니다.',
+        message: '제작 프로젝트가 없습니다.',
       });
     }
   } catch (err) {
     console.log('server.mjs madeProject', err);
+  }
+});
+
+// 마이페이지 관심프로젝트 부분
+
+app.post('/likeProject', async (req, res) => {
+  try {
+    // userid정보로 바로 userprojects에 들어가서 userLikeProject를 가져와
+    // projects 에서 userLikeProject와 proj_id가 같은걸 가져옴
+    const userLike = await userprojects
+      .findOne({ users_id: req.body.user_id })
+      .exec();
+
+    if (userLike) {
+      const userLikeProject = await projects
+        .find({ proj_id: { $in: userLike.userLikeProject } })
+        .exec();
+      return res.status(200).json({
+        likes: userLikeProject,
+      });
+    }
+    if (userLike) {
+      return res.status(200).json({
+        message: '관심 프로젝트가 없습니다.',
+      });
+    }
+  } catch (err) {
+    console.log('server.mjs likeProject', err);
+  }
+});
+
+// 마이프로젝트 관심 프로젝트 삭제 부분
+
+app.post('/cancelLike', async (req, res) => {
+  try {
+    // 받아온 user_id로 userprojects에서 userLikeProject를 확인하고
+    // 받아온 proj_id를 userLikeProject에서 제외시키고 갱신함
+    const userCancelLike = await userprojects.updateOne(
+      { users_id: req.body.user_id },
+      { $pull: { userLikeProject: req.body.proj_id } }
+    );
+    if (userCancelLike) {
+      return res.status(200).json({ cancelLikeSuccess: true });
+    } else {
+      return res.status(200).json({ cancelLikeSuccess: false });
+    }
+  } catch (err) {
+    console.log('server.mjs cancelLike', err);
+  }
+});
+
+// 마이페이지 회원정보 수정 부분
+
+app.post('/userProfileModify', async (req, res) => {
+  const {
+    userId,
+    userNameChanged,
+    userPhoneNumChanged,
+    userAddrChanged,
+    userPassword,
+  } = req.body;
+  try {
+    if (userPassword === undefined) {
+      // userPassword가 undefined 일때
+      // userId 기준으로 회원을 찾아서 업데이트
+      const userModifyData = await users.findOneAndUpdate(
+        { userId: userId },
+        {
+          $set: {
+            userName: userNameChanged,
+            userPhoneNum: userPhoneNumChanged,
+            userAddr: userAddrChanged,
+          },
+        }
+      );
+      return res.status(200).json({ userProfileModifySuccess: true });
+    } else if (userPassword !== undefined) {
+      // userPassword가 undefined 가 아닐때
+      const hashedPwd = await bcrypt.hash(userPassword, 10);
+      const userModifyData = await users.findOneAndUpdate(
+        { userId: userId },
+        {
+          $set: {
+            userName: userNameChanged,
+            userPhoneNum: userPhoneNumChanged,
+            userPassword: hashedPwd,
+            userAddr: userAddrChanged,
+          },
+        }
+      );
+      return res.status(200).json({ userProfileModifySuccess: true });
+    } else {
+      return res.status(200).json({ userProfileModifySuccess: false });
+    }
+  } catch (err) {
+    console.log('server.mjs userProfileModify', err);
   }
 });
 
@@ -350,6 +449,10 @@ app.get('/auth', middleAuth, (req, res) => {
       userId: req.foundUser.userId,
       isAdmin: req.foundUser.role === 0 ? false : true, // role이 0이면 일반사용자, 0이아니면 운영자
       isLogin: true,
+      userAddr: req.foundUser.userAddr,
+      userName: req.foundUser.userName,
+      userPhoneNum: req.foundUser.userPhoneNum,
+      userMail: req.foundUser.userMail,
     });
   } catch (err) {
     console.log('server.mjs', err);
@@ -366,6 +469,7 @@ app.get('/projName', async (req, res) => {
   }
 });
 
+// 프로젝트 모두 가져오는 예시
 app.get('/projects', async (req, res) => {
   try {
     const projName = await projects.find({});

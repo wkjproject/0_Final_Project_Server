@@ -18,7 +18,7 @@ export const fundingsSchema = new mongoose.Schema({
     },
   ],
   fundingDate: {
-    type: Date,
+    type: String,
   },
   fundingStatus: {
     type: Number,
