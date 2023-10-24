@@ -416,7 +416,6 @@ app.post('/userProfileModify', async (req, res) => {
           },
         }
       );
-      console.log('위', userModifyData);
       return res.status(200).json({ userProfileModifySuccess: true });
     } else if (userPassword !== undefined) {
       // userPassword가 undefined 가 아닐때
@@ -432,7 +431,6 @@ app.post('/userProfileModify', async (req, res) => {
           },
         }
       );
-      console.log('아래', userModifyData);
       return res.status(200).json({ userProfileModifySuccess: true });
     } else {
       return res.status(200).json({ userProfileModifySuccess: false });
