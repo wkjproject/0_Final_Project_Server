@@ -51,6 +51,9 @@ app.post('/login', async (req, res) => {
           message: '로그인 성공',
           token: userFind.token,
           userName: userFind.userName,
+          userAddr: userFind.userAddr,
+          userPhoneNum: userFind.userPhoneNum,
+          userMail: userFind.userMail,
           _id: userFind._id,
           userId: userFind.userId,
         });
@@ -242,7 +245,7 @@ app.post('/verifiCode', async (req, res) => {
         message: '인증번호를 확인해주세요.',
       });
     }
-  } catch {}
+  } catch { }
 });
 
 // 비밀번호 찾기에서 새로운 비밀번호로 변경 부분
