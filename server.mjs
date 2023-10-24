@@ -52,6 +52,8 @@ app.post('/login', async (req, res) => {
           message: '로그인 성공',
           token: userFind.token,
           userName: userFind.userName,
+          userAddr: userFind.userAddr,
+          userPhoneNum: userFind.userPhoneNum,
           _id: userFind._id,
           userId: userFind.userId,
         });
