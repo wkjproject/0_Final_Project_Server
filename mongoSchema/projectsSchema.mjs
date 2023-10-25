@@ -56,6 +56,8 @@ export const projectsSchema = new mongoose.Schema({
     {
       projRewardName: String,
       projRewardAmount: Number,
+      projRewardCount: Number,
+      projRewardAvailable: Number,
     },
   ],
   projFundDate: [
