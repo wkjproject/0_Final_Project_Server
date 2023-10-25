@@ -456,10 +456,39 @@ app.post('/fundingStatus', async (req, res) => {
         projFundUserCount: fundingStatusData.projFundUserCount,
         projFundDate: fundingStatusData.projFundDate,
         projMainImgPath: fundingStatusData.projMainImgPath,
+        projReward: fundingStatusData.projReward,
       });
     }
   } catch (err) {
     console.log('server.mjs fundingStatus', err);
+  }
+});
+
+// 펀딩 현황 세부내역(모달창) 부분
+app.post('/fundingStatusModal', async (req, res) => {
+  try {
+    // fundings 컬렉션에 id(proj_id)와 project_id가 같은것만 전체 필드 다 가져오기
+    const fundingStatusModalData = await fundings.find({
+      project_id: req.body._id,
+    });
+    // fundings 컬렉션의 user_id 중복제거
+    if (fundingStatusModalData) {
+      // fundingStatusModalData 에 해당하는 유저들 user_id 중복제거
+      const uniqueUserIds = [
+        ...new Set(fundingStatusModalData.map((item) => item.user_id)),
+      ];
+      // users 컬렉션에서 uniqueUserIds에 해당하는 userName 가져오기
+      const fundingStatusModalUserName = await users.find(
+        { userId: { $in: uniqueUserIds } },
+        { userId: 1, userName: 1, _id: 0 }
+      );
+      res.status(200).json({
+        fundingStatusModalData: fundingStatusModalData,
+        fundingStatusModalUserName: fundingStatusModalUserName,
+      });
+    }
+  } catch (err) {
+    console.log('server.mjs fundingStatusModal', err);
   }
 });
 
