@@ -524,6 +524,35 @@ app.get('/usersInfo', async(req, res) => {
   }
 })
 
+
+// 회원관리 페이지에서 회원 탈퇴처리하는 부분
+app.post('/byeUserDB', async (req, res) => {
+  try {
+    // MongoDB에서 해당 userMail 일치하는 데이터를 삭제
+    const result = await users.deleteOne({
+      userMail: req.body.userMail,
+    });
+
+    // 삭제 됐을 때
+    if (result) {
+      res
+        .status(200)
+        .json({ byeUserSuccess: true, message: '회원 탈퇴가 처리되었습니다.' });
+    } else {
+      // 해당 userMail 일치하는 데이터가 없을 때
+      res.status(404).json({
+        byeUserSuccess: false,
+        message: '데이터를 찾을 수 없습니다.',
+      });
+    }
+  } catch (error) {
+    // 오류 처리
+    console.error(error);
+    res.status(500).json({ message: '서버 오류입니다.' });
+  }
+});
+
+
 app.listen(port, () => {
   console.log(`http://localhost:${port}`);
   console.log(`${port}번 포트`);
