@@ -440,6 +440,58 @@ app.post('/userProfileModify', async (req, res) => {
   }
 });
 
+// 펀딩현황부분
+app.post('/fundingStatus', async (req, res) => {
+  try {
+    // 클라이언트로부터 _id(proj_id)를 받아서
+    // projects컬렉션에서 projFundGoal(목표액), projFundCollect(모인금액), projFundUserCount(후원자수)  projFundDate에 projFundEndDate (남은기간용도)
+    const fundingStatusData = await projects.findOne({
+      proj_id: req.body._id,
+    });
+    if (fundingStatusData) {
+      return res.status(200).json({
+        projName: fundingStatusData.projName,
+        projFundGoal: fundingStatusData.projFundGoal,
+        projFundCollect: fundingStatusData.projFundCollect,
+        projFundUserCount: fundingStatusData.projFundUserCount,
+        projFundDate: fundingStatusData.projFundDate,
+        projMainImgPath: fundingStatusData.projMainImgPath,
+        projReward: fundingStatusData.projReward,
+      });
+    }
+  } catch (err) {
+    console.log('server.mjs fundingStatus', err);
+  }
+});
+
+// 펀딩 현황 세부내역(모달창) 부분
+app.post('/fundingStatusModal', async (req, res) => {
+  try {
+    // fundings 컬렉션에 id(proj_id)와 project_id가 같은것만 전체 필드 다 가져오기
+    const fundingStatusModalData = await fundings.find({
+      project_id: req.body._id,
+    });
+    // fundings 컬렉션의 user_id 중복제거
+    if (fundingStatusModalData) {
+      // fundingStatusModalData 에 해당하는 유저들 user_id 중복제거
+      const uniqueUserIds = [
+        ...new Set(fundingStatusModalData.map((item) => item.user_id)),
+      ];
+      // users 컬렉션에서 uniqueUserIds에 해당하는 userName 가져오기
+      const fundingStatusModalUserName = await users.find(
+        { userId: { $in: uniqueUserIds } },
+        { userId: 1, userName: 1, _id: 0 }
+      );
+      res.status(200).json({
+        fundingStatusModalData: fundingStatusModalData,
+        fundingStatusModalUserName: fundingStatusModalUserName,
+      });
+    }
+  } catch (err) {
+    console.log('server.mjs fundingStatusModal', err);
+  }
+});
+
 // 사용자 인증부분
 app.get('/auth', middleAuth, (req, res) => {
   try {
@@ -513,16 +565,18 @@ app.post('/newProjStatus', async (req, res) => {
   }
 });
 
-
 // 회원관리 페이지에서 회원관리 정보 조회하는 부분
-app.get('/usersInfo', async(req, res) => {
+app.get('/usersInfo', async (req, res) => {
   try {
-    const userData = await users.find({}, 'userId userName userMail userPhoneNum userAddr role');
+    const userData = await users.find(
+      {},
+      'userId userName userMail userPhoneNum userAddr role'
+    );
     res.status(200).json(userData);
   } catch (err) {
     console.log('server.mjs usersInfo', err);
   }
-})
+});
 
 app.listen(port, () => {
   console.log(`http://localhost:${port}`);
