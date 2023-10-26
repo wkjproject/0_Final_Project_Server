@@ -492,6 +492,27 @@ app.post('/fundingStatusModal', async (req, res) => {
   }
 });
 
+// 펀딩 현황 세부내역에서 대기 / 확정 / 거절 버튼 누르면 해당 status로 변경
+app.post('/fundingStatusModalChangeStatus', async (req, res) => {
+  try {
+    // 클라이언트로부터 받은 funding_id로 찾고 fundingStatus를 statusChangeNumber 로 변경
+    const fundingStatusModalChangeStatusData = await fundings.findOneAndUpdate(
+      { funding_id: req.body.funding_id },
+      {
+        $set: {
+          fundingStatus: req.body.statusChangeNumber,
+        },
+      }
+    );
+    if (fundingStatusModalChangeStatusData) {
+      res.status(200).json({ statusChangeSuccess: true });
+    }
+    if (!fundingStatusModalChangeStatusData) {
+      res.status(200).json({ statusChangeSuccess: false });
+    }
+  } catch {}
+});
+
 // 사용자 인증부분
 app.get('/auth', middleAuth, (req, res) => {
   try {
