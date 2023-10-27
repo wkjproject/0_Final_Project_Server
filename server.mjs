@@ -6,6 +6,7 @@ import {
   userprojects,
   verifiCode,
   fundings,
+  projidcounter,
 } from './mongo.mjs';
 import cookieParser from 'cookie-parser';
 import bcrypt from 'bcrypt';
@@ -482,9 +483,15 @@ app.post('/fundingStatusModal', async (req, res) => {
         { userId: { $in: uniqueUserIds } },
         { userId: 1, userName: 1, _id: 0 }
       );
-      res.status(200).json({
+      return res.status(200).json({
         fundingStatusModalData: fundingStatusModalData,
         fundingStatusModalUserName: fundingStatusModalUserName,
+        fundingStatusModalDataSuccess: true,
+      });
+    }
+    if (!fundingStatusModalData) {
+      return res.status(200).json({
+        fundingStatusModalDataSuccess: false,
       });
     }
   } catch (err) {
@@ -511,6 +518,48 @@ app.post('/fundingStatusModalChangeStatus', async (req, res) => {
       res.status(200).json({ statusChangeSuccess: false });
     }
   } catch {}
+});
+
+// 프로젝트 등록 부분
+app.post('/createProj', async (req, res) => {
+  // 클라이언트로부터 정보 받기
+  const imgUrl = req.body.uploadImgUrl;
+  const userId = req.body.userId;
+  console.log(req.body.projName);
+  // proj_id를 위한 번호 생성
+  const counter = await projidcounter.findOneAndUpdate(
+    {},
+    { $inc: { seq: 1 } },
+    { new: true }
+  );
+  const nextSeq = counter.seq;
+  // projPlace 주소찾기에서 상세주소랑 일반주소랑 나누어야함
+
+  // projDate를 위한 추출
+  const times = req.body.projReward.map((reward) => reward.projRewardName);
+  const data = {
+    proj_id: nextSeq,
+    projFundGoal: parseInt(req.body.goalAmount),
+    userMade_id: userId,
+    projName: req.body.projName,
+    projRegion: parseInt(req.body.projRegion),
+    projDesc: req.body.projDesc,
+    projPlace: req.body.projPlace,
+    projMainImgPath: imgUrl,
+    projTag: parseInt(req.body.projTag),
+    projAddr: req.body.projAddr,
+    projDate: times,
+    projReward: req.body.projReward,
+    projFundDate: [
+      {
+        projFundStartDate: req.body.projFundStartDate,
+        projFundEndDate: req.body.projFundEndDate,
+      },
+    ],
+  };
+  const sendData = new projects(data);
+  sendData.save();
+  res.status(200).json({ success: true });
 });
 
 // 사용자 인증부분

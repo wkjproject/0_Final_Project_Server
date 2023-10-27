@@ -5,6 +5,7 @@ import { userProjectsSchema } from './mongoSchema/userProjectsSchema.mjs';
 import { verifiCodeSchema } from './mongoSchema/verifiCodeSchema.mjs';
 import { fundingsSchema } from './mongoSchema/fundingsSchema.mjs';
 import jwt from 'jsonwebtoken';
+import { projidcounterSchema } from './mongoSchema/projIdcounterSchema.mjs';
 
 const uri =
   'mongodb+srv://team6mongo:team6mongo@finalprojectteam6.psuivab.mongodb.net/Database'; //제일 뒤에 userData가 Database 이름
@@ -68,6 +69,10 @@ export const projects = mongoose.model('projects', projectsSchema);
 export const userprojects = mongoose.model('userprojects', userProjectsSchema);
 export const verifiCode = mongoose.model('verifiCode', verifiCodeSchema);
 export const fundings = mongoose.model('fundings', fundingsSchema);
+export const projidcounter = mongoose.model(
+  'projidcounter',
+  projidcounterSchema
+);
 
 // 만료된 token, tokenExp '' 로 업데이트
 function removeExpiredTokens() {

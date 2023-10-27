@@ -7,15 +7,18 @@ export const projectsSchema = new mongoose.Schema({
   },
   projLike: {
     type: Number,
+    default: 0,
   },
   projFundGoal: {
     type: Number,
   },
   projFundCollect: {
     type: Number,
+    default: 0,
   },
   projFundUserCount: {
     type: Number,
+    default: 0,
   },
   userMade_id: {
     type: Number,
@@ -57,7 +60,12 @@ export const projectsSchema = new mongoose.Schema({
       projRewardName: String,
       projRewardAmount: Number,
       projRewardCount: Number,
-      projRewardAvailable: Number,
+      projRewardAvailable: {
+        type: Number,
+        default: function () {
+          return this.projRewardCount;
+        },
+      },
     },
   ],
   projFundDate: [
