@@ -142,12 +142,20 @@ app.post('/signup', async (req, res) => {
     const { userName, userMail, userPassword, userPhoneNum, userAddr } =
       req.body;
     const hashedPwd = await bcrypt.hash(userPassword, 10);
+    // userId부분 counter로 받아서 집어넣기
+    const counter = await projidcounter.findOneAndUpdate(
+      {},
+      { $inc: { seqUserId: 1 } },
+      { new: true }
+    );
+    const nextSeq = counter.seqUserId;
     const data = {
       userName: userName,
       userMail: userMail,
       userPassword: hashedPwd,
       userPhoneNum: userPhoneNum,
       userAddr: userAddr,
+      userId: nextSeq,
     };
     await users.insertMany([data]);
     return res.status(200).json({ signupSuccess: true });
@@ -525,7 +533,6 @@ app.post('/createProj', async (req, res) => {
   // 클라이언트로부터 정보 받기
   const imgUrl = req.body.uploadImgUrl;
   const userId = req.body.userId;
-  console.log(req.body.projName);
   // proj_id를 위한 번호 생성
   const counter = await projidcounter.findOneAndUpdate(
     {},
@@ -533,7 +540,6 @@ app.post('/createProj', async (req, res) => {
     { new: true }
   );
   const nextSeq = counter.seq;
-  // projPlace 주소찾기에서 상세주소랑 일반주소랑 나누어야함
 
   // projDate를 위한 추출
   const times = req.body.projReward.map((reward) => reward.projRewardName);
@@ -562,8 +568,26 @@ app.post('/createProj', async (req, res) => {
   res.status(200).json({ success: true });
 });
 
+// 프로젝트 수정 부분
+app.post('/modifyProj', async (req, res) => {
+  // _id(proj_id) 기반으로 서버에 등록된 프로젝트를 가져오기
+  const modifyProjData = await projects.findOne({
+    proj_id: req.body._id,
+  });
+  if (modifyProjData) {
+    return res.status(200).json({
+      modifyProjData,
+    });
+  }
+  if (!modifyProjData) {
+    return res.status(401).json({
+      Success: false,
+    });
+  }
+});
+
 // 사용자 인증부분
-app.get('/auth', middleAuth, (req, res) => {
+app.get('/auth', middleAuth, async (req, res) => {
   try {
     // 사용자 _id(몽고DB 고유 _id) + 로컬스토리지 토큰 과 서버에 있는 _id + 토큰을 비교해 일치할경우 다음과같은 응답
     res.status(200).json({
@@ -648,7 +672,6 @@ app.get('/usersInfo', async (req, res) => {
   }
 });
 
-
 // 회원관리 페이지에서 회원 탈퇴처리하는 부분
 app.post('/byeUserDB', async (req, res) => {
   try {
@@ -675,7 +698,6 @@ app.post('/byeUserDB', async (req, res) => {
     res.status(500).json({ message: '서버 오류입니다.' });
   }
 });
-
 
 app.listen(port, () => {
   console.log(`http://localhost:${port}`);
