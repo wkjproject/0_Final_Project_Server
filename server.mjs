@@ -16,7 +16,12 @@ import { randomCode } from './function/GenRandomCode.mjs';
 
 const port = 5000;
 const app = express();
-app.use(cors({}));
+app.use(
+  cors({
+    origin: true, // 출처 허용 옵션
+    credentials: true, // 사용자 인증이 필요한 리소스(쿠키 등) 접근
+  })
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -44,20 +49,40 @@ app.post('/login', async (req, res) => {
       userFind.userPassword
     );
     if (checkUserPwd) {
-      await userFind.generateToken((err, data) => {
+      await userFind.generateToken((err, data, accessToken) => {
         if (err) return res.status(400).send(err);
+        // 리프레쉬토큰을 쿠키에 저장
+        res
+          .cookie('refreshToken', userFind.token, {
+            httpOnly: true, // HTTP Only 설정
+            secure: true, // HTTPS에서만 사용하도록 설정 (Production 환경에서)
+          })
+          .status(200)
+          .json({
+            loginSuccess: true,
+            message: '로그인 성공',
+            accessToken: accessToken,
+            userName: userFind.userName,
+            userAddr: userFind.userAddr,
+            userPhoneNum: userFind.userPhoneNum,
+            userMail: userFind.userMail,
+            _id: userFind._id,
+            userId: userFind.userId,
+            isAdmin: userFind.role === 0 ? false : true, // role이 0이면 일반사용자, 0이아니면 운영자
+            isLogin: true,
+          });
         // token을 클라이언트로 보냄
-        res.status(200).json({
+        /*         res.status(200).json({
           loginSuccess: true,
           message: '로그인 성공',
-          token: userFind.token,
+          accessToken: accessToken,
           userName: userFind.userName,
           userAddr: userFind.userAddr,
           userPhoneNum: userFind.userPhoneNum,
           userMail: userFind.userMail,
           _id: userFind._id,
           userId: userFind.userId,
-        });
+        }); */
       });
     } else {
       res.status(200).json({
@@ -589,17 +614,13 @@ app.post('/modifyProj', async (req, res) => {
 // 사용자 인증부분
 app.get('/auth', middleAuth, async (req, res) => {
   try {
-    // 사용자 _id(몽고DB 고유 _id) + 로컬스토리지 토큰 과 서버에 있는 _id + 토큰을 비교해 일치할경우 다음과같은 응답
-    res.status(200).json({
-      _id: req.foundUser._id, // middleAuth 에서 제공한 foundUser
-      userId: req.foundUser.userId,
-      isAdmin: req.foundUser.role === 0 ? false : true, // role이 0이면 일반사용자, 0이아니면 운영자
-      isLogin: true,
-      userAddr: req.foundUser.userAddr,
-      userName: req.foundUser.userName,
-      userPhoneNum: req.foundUser.userPhoneNum,
-      userMail: req.foundUser.userMail,
-    });
+    if (req.isLogin === false) {
+      // 인증에 실패한 경우
+      res.status(200).json({ isLogin: false });
+    } else {
+      // 인증에 성공한 경우
+      res.status(200).json({ isLogin: true });
+    }
   } catch (err) {
     console.log('server.mjs', err);
   }
@@ -618,8 +639,8 @@ app.get('/projName', async (req, res) => {
 // 프로젝트 모두 가져오는 예시
 app.get('/projects', async (req, res) => {
   try {
-    const projName = await projects.find({});
-    res.status(200).json({ projName });
+    const AllProjects = await projects.find({});
+    res.status(200).json({ projects: AllProjects });
   } catch (err) {
     console.log(err);
   }
