@@ -6,6 +6,7 @@ import { verifiCodeSchema } from './mongoSchema/verifiCodeSchema.mjs';
 import { fundingsSchema } from './mongoSchema/fundingsSchema.mjs';
 import jwt from 'jsonwebtoken';
 import { projidcounterSchema } from './mongoSchema/projIdcounterSchema.mjs';
+import cron from 'node-cron';
 
 const uri =
   'mongodb+srv://team6mongo:team6mongo@finalprojectteam6.psuivab.mongodb.net/Database'; //제일 뒤에 userData가 Database 이름
@@ -55,7 +56,7 @@ usersSchema.methods.generateToken = function (cb) {
 usersSchema.statics.findByToken = async function (accessToken, refreshToken) {
   const accessSecretKey = 'team6mongoAccess';
   const refreshSecretKey = 'team6mongoRefresh';
-  const accessTokenExpTime = '10s'; // jwt 엑세스토큰 만료시간 지정
+  const accessTokenExpTime = '1m'; // jwt 엑세스토큰 만료시간 지정
   try {
     const decoded = await jwt.verify(accessToken, accessSecretKey);
     return decoded._id;
@@ -108,6 +109,28 @@ export const projidcounter = mongoose.model(
   projidcounterSchema
 );
 
+// 10분마다 프로젝트 날짜가 지난 것들의 projStatus 값을 2로 변경
+// 10분마다 실행하고자 하는 함수
+function updateProjStatus() {
+  const currentTime = new Date();
+  const filter = {
+    'projFundDate.0.projFundEndDate': { $lte: currentTime },
+  };
+
+  const update = {
+    $set: { projStatus: '2' },
+  };
+
+  projects
+    .updateMany(filter, update)
+    .then((result) => {
+      console.log(`10분마다 만료된 프로젝트 갱신 중...`);
+    })
+    .catch((error) => {
+      console.error('업데이트 중 오류 발생:', error);
+    });
+}
+
 // 만료된 token, tokenExp '' 로 업데이트
 function removeExpiredTokens() {
   const currentTime = new Date();
@@ -125,4 +148,8 @@ function removeExpiredTokens() {
     });
 }
 
-/* setInterval(removeExpiredTokens, 600000); // 10분마다 DB에서 만료된 토큰 삭제 */
+//60초마다 함수 실행
+cron.schedule('*/60 * * * * *', () => {
+  updateProjStatus();
+  removeExpiredTokens();
+});

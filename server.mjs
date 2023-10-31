@@ -141,10 +141,10 @@ app.post('/login/kakao', async (req, res) => {
 // 네이버 로그인 부분
 
 // 로그아웃 부분
-app.get('/logout', middleAuth, async (req, res) => {
+app.post('/logout', async (req, res) => {
   try {
     const logoutUser = await users.findOneAndUpdate(
-      { _id: req.foundUser._id }, // middleAuth 의 foundUser
+      { _id: req.body._id }, // middleAuth 의 foundUser
       {
         $set: {
           token: '',
@@ -155,9 +155,8 @@ app.get('/logout', middleAuth, async (req, res) => {
     if (!logoutUser) {
       return res.json({ logoutSuccess: false });
     }
-    res.clearCookie('accessToken');
     res.clearCookie('refreshToken');
-    return res.status(200).send({ logoutSuccess: true });
+    res.status(200).send({ logoutSuccess: true });
   } catch (err) {
     return res.json({ logoutSuccess: false, err });
   }
