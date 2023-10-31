@@ -114,7 +114,7 @@ export const projidcounter = mongoose.model(
 function updateProjStatus() {
   const currentTime = new Date();
   const filter = {
-    'projFundDate.0.projFundEndDate': { $lte: currentTime },
+    'projFundDate.0.projFundEndDate': { $lte: currentTime.toISOString() },
   };
 
   const update = {
