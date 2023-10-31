@@ -644,8 +644,8 @@ app.get('/projName', async (req, res) => {
 // 프로젝트 모두 가져오는 예시
 app.get('/projects', async (req, res) => {
   try {
-    const AllProjects = await projects.find({});
-    res.status(200).json({ projects: AllProjects });
+    const allProjects = await projects.find({});
+    res.status(200).json({ projects: allProjects });
   } catch (err) {
     console.log(err);
   }
