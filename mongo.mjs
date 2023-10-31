@@ -23,7 +23,7 @@ mongoose
 usersSchema.methods.generateToken = function (cb) {
   // 리프레쉬토큰과 엑세스 토큰의 만료시간을 동일하게해 리프레쉬토큰의 보안을 강화
   const refreshTokenExpTime = '10m'; // jwt 리프레쉬토큰 만료시간 지정
-  const accessTokenExpTime = '10m'; // jwt 엑세스토큰 만료시간 지정
+  const accessTokenExpTime = '1m'; // jwt 엑세스토큰 만료시간 지정
   const tokenExp = new Date();
   const refreshSecretKey = 'team6mongoRefresh';
   const accessSecretKey = 'team6mongoAccess';
@@ -55,6 +55,7 @@ usersSchema.methods.generateToken = function (cb) {
 usersSchema.statics.findByToken = async function (accessToken, refreshToken) {
   const accessSecretKey = 'team6mongoAccess';
   const refreshSecretKey = 'team6mongoRefresh';
+  const accessTokenExpTime = '10s'; // jwt 엑세스토큰 만료시간 지정
   try {
     const decoded = await jwt.verify(accessToken, accessSecretKey);
     return decoded._id;
@@ -65,6 +66,7 @@ usersSchema.statics.findByToken = async function (accessToken, refreshToken) {
     if (err.name === 'TokenExpiredError') {
       if (refreshToken) {
         try {
+          console.log('---------------------------------------------------');
           // 리프레쉬 코인 만료여부 조사
           const decodedRefreshToken = await jwt.verify(
             refreshToken,
@@ -80,7 +82,7 @@ usersSchema.statics.findByToken = async function (accessToken, refreshToken) {
             const newAccessToken = jwt.sign(
               { _id: decodedRefreshToken._id },
               accessSecretKey,
-              { expiresIn: '10m' }
+              { expiresIn: accessTokenExpTime }
             );
             // 새로운 엑세스 토큰을 클라이언트에게 보내줍니다 (예: res.cookie('accessToken', newAccessToken))
             return newAccessToken;

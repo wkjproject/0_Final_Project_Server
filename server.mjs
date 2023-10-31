@@ -155,6 +155,8 @@ app.get('/logout', middleAuth, async (req, res) => {
     if (!logoutUser) {
       return res.json({ logoutSuccess: false });
     }
+    res.clearCookie('accessToken');
+    res.clearCookie('refreshToken');
     return res.status(200).send({ logoutSuccess: true });
   } catch (err) {
     return res.json({ logoutSuccess: false, err });
@@ -616,10 +618,14 @@ app.get('/auth', middleAuth, async (req, res) => {
   try {
     if (req.isLogin === false) {
       // 인증에 실패한 경우
-      res.status(200).json({ isLogin: false });
+      res.status(200).json({ isLogin: false, accessToken: '' });
     } else {
-      // 인증에 성공한 경우
-      res.status(200).json({ isLogin: true });
+      // 리프레쉬토큰으로 엑세스토큰을 재발급받았을때와 엑세스토큰이 만료안됐을때 처리
+      if (req.accessToken !== undefined) {
+        res.status(200).json({ isLogin: true, accessToken: req.accessToken });
+      } else {
+        res.status(200).json({ isLogin: true, accessToken: '' });
+      }
     }
   } catch (err) {
     console.log('server.mjs', err);
