@@ -67,7 +67,6 @@ usersSchema.statics.findByToken = async function (accessToken, refreshToken) {
     if (err.name === 'TokenExpiredError') {
       if (refreshToken) {
         try {
-          console.log('---------------------------------------------------');
           // 리프레쉬 코인 만료여부 조사
           const decodedRefreshToken = await jwt.verify(
             refreshToken,
@@ -148,8 +147,8 @@ function removeExpiredTokens() {
     });
 }
 
-//60초마다 함수 실행
-cron.schedule('*/60 * * * * *', () => {
-  updateProjStatus();
-  removeExpiredTokens();
-});
+//10분마다 함수 실행
+//cron.schedule('*/10 * * * *', () => {
+//  updateProjStatus();
+//  removeExpiredTokens();
+//});
