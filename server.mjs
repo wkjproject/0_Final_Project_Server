@@ -651,6 +651,31 @@ app.get('/projects', async (req, res) => {
   }
 });
 
+// 프로젝트 상세페이지 MenuTabs에서 제작자 정보 불러오기
+app.post('/menuTabs', async (req, res) => {
+  // 클라이언트로부터 userMade_id 를 받아서 users 컬렉션의 userId와 일치하는 users_id, userName, userMail, userPhoneNum 보내기
+  try {
+    const createProjUser = await users.findOne({
+      userId: req.body.userMade_id,
+    });
+    if (createProjUser) {
+      return res.status(200).json({
+        users_id: createProjUser.userId,
+        userName: createProjUser.userName,
+        userMail: createProjUser.userMail,
+        userPhoneNum: createProjUser.userPhoneNum,
+      });
+    }
+    if (!createProjUser) {
+      return res.status(401).json({
+        Success: false,
+      });
+    }
+  } catch (err) {
+    console.error('server.mjs menuTabs', err);
+  }
+});
+
 // 프로젝트 상태: projStatus
 app.get('/projStatus', async (req, res) => {
   try {
