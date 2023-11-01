@@ -816,10 +816,14 @@ app.get('/projStatus', async (req, res) => {
 // 프로젝트 승인/거절 페이지에서 프로젝트 승인상태 변경하는 부분
 app.post('/newProjStatus', async (req, res) => {
   try {
-    const newProjStatusUpdate = await projects.findOneAndUpdate({
-      projStatus: req.body.projStatus,
-    });
-
+    const newProjStatusUpdate = await projects.findOneAndUpdate(
+      { proj_id: req.body.proj_id }, // middleAuth 의 foundUser
+      {
+        $set: {
+          projStatus: req.body.projStatus,
+        },
+      }
+    );
     if (newProjStatusUpdate) {
       return res.status(200).json({
         newProjStatusSuccess: true,
