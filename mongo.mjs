@@ -23,8 +23,8 @@ mongoose
 // JWT 리프레쉬 토큰 생성
 usersSchema.methods.generateToken = function (cb) {
   // 리프레쉬토큰과 엑세스 토큰의 만료시간을 동일하게해 리프레쉬토큰의 보안을 강화
-  const refreshTokenExpTime = '10m'; // jwt 리프레쉬토큰 만료시간 지정
-  const accessTokenExpTime = '1m'; // jwt 엑세스토큰 만료시간 지정
+  const refreshTokenExpTime = '60m'; // jwt 리프레쉬토큰 만료시간 지정
+  const accessTokenExpTime = '10m'; // jwt 엑세스토큰 만료시간 지정
   const tokenExp = new Date();
   const refreshSecretKey = 'team6mongoRefresh';
   const accessSecretKey = 'team6mongoAccess';
@@ -56,7 +56,7 @@ usersSchema.methods.generateToken = function (cb) {
 usersSchema.statics.findByToken = async function (accessToken, refreshToken) {
   const accessSecretKey = 'team6mongoAccess';
   const refreshSecretKey = 'team6mongoRefresh';
-  const accessTokenExpTime = '1m'; // jwt 엑세스토큰 만료시간 지정
+  const accessTokenExpTime = '10m'; // jwt 엑세스토큰 만료시간 지정
   try {
     const decoded = await jwt.verify(accessToken, accessSecretKey);
     return decoded._id;
