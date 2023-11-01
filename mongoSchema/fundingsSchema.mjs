@@ -22,5 +22,6 @@ export const fundingsSchema = new mongoose.Schema({
   },
   fundingStatus: {
     type: Number,
+    default: 0,
   },
 });

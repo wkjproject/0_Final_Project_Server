@@ -23,12 +23,12 @@ mongoose
 // JWT 리프레쉬 토큰 생성
 usersSchema.methods.generateToken = function (cb) {
   // 리프레쉬토큰과 엑세스 토큰의 만료시간을 동일하게해 리프레쉬토큰의 보안을 강화
-  const refreshTokenExpTime = '60m'; // jwt 리프레쉬토큰 만료시간 지정
+  const refreshTokenExpTime = '1h'; // jwt 리프레쉬토큰 만료시간 지정
   const accessTokenExpTime = '10m'; // jwt 엑세스토큰 만료시간 지정
   const tokenExp = new Date();
   const refreshSecretKey = 'team6mongoRefresh';
   const accessSecretKey = 'team6mongoAccess';
-  tokenExp.setMinutes(tokenExp.getMinutes() + 10); // 현재 시간에 10분을 추가
+  tokenExp.setMinutes(tokenExp.getMinutes() + 60); // 현재 시간에 60분을 추가
   // 사용자의 ID를 토큰 페이로드로 설정합니다.
   const payload = {
     _id: this._id, // 예: 사용자의 MongoDB _id

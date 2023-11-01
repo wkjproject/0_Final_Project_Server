@@ -591,6 +591,16 @@ app.post('/createProj', async (req, res) => {
   };
   const sendData = new projects(data);
   sendData.save();
+  // userprojects 컬렉션에 userId로 찾아서 userMadeProject 에 nextSeq 추가하기
+  const madeUser = await userprojects.findOneAndUpdate(
+    { users_id: userId },
+    {
+      $push: {
+        userMadeProject: nextSeq,
+      },
+    },
+    { upsert: true } // upsert 옵션 설정해서 필드가 없을경우 생성
+  );
   res.status(200).json({ success: true });
 });
 
@@ -685,7 +695,7 @@ app.post('/heartClicked', async (req, res) => {
       const unHeart = await userprojects.findOneAndUpdate(
         { users_id: req.body.userId },
         {
-          $unset: {
+          $pull: {
             userLikeProject: req.body._id,
           },
         },
@@ -699,7 +709,7 @@ app.post('/heartClicked', async (req, res) => {
       const onHeart = await userprojects.findOneAndUpdate(
         { users_id: req.body.userId },
         {
-          $set: {
+          $push: {
             userLikeProject: req.body._id,
           },
         },
@@ -738,6 +748,58 @@ app.post('/userHeartClicked', async (req, res) => {
     }
   } catch (err) {
     console.log('server.mjs userHeartClicked', err);
+  }
+});
+
+// projectPay 결제하기 부분
+app.post('/pay', async (req, res) => {
+  try {
+    const { user_id, project_id, rewards, fundingDate, projFund } = req.body;
+    const counter = await projidcounter.findOneAndUpdate(
+      {},
+      { $inc: { seqFundingId: 1 } },
+      { new: true }
+    );
+    const nextSeq = counter.seqFundingId;
+
+    // fundings 컬렉션에 새로운 문서 추가
+    const funding = await fundings.create({
+      funding_id: nextSeq,
+      user_id: user_id,
+      project_id: project_id,
+      rewards: rewards,
+      fundingDate: fundingDate,
+    });
+
+    // projects 컬렉션에서 projFundCollect에 projFund 더하고 projFundUserCount + 1
+    const project = await projects.findOne({ proj_id: project_id });
+    if (project) {
+      const projFundCollect = project.projFundCollect + projFund;
+      const projFundUserCount = project.projFundUserCount + 1;
+      await projects.updateOne(
+        { proj_id: project_id },
+        {
+          $set: {
+            projFundCollect,
+            projFundUserCount,
+          },
+        }
+      );
+    }
+
+    // userprojects 컬렉션에서 user_id 검색해 userFundProject에 project_id 추가
+    await userprojects.updateOne(
+      { users_id: user_id },
+      {
+        $push: { userFundProject: project_id },
+      },
+      { upsert: true } // 없을경우 필드 추가
+    );
+
+    res.status(200).json({ Success: true });
+  } catch (err) {
+    console.error('Error in /pay:', err);
+    res.status(500).send('Internal Server Error');
   }
 });
 
