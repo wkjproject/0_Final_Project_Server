@@ -676,6 +676,71 @@ app.post('/menuTabs', async (req, res) => {
   }
 });
 
+// RewardSelect에서 하트 클릭시
+app.post('/heartClicked', async (req, res) => {
+  try {
+    const heartProjLike = await projects.findOne({ proj_id: req.body._id });
+    // 클라이언트로부터 받은 heartStatus가 0이면 userprojects 컬렉션에 userId로 찾아서 userLikeProject 필드에 0이면 _id 삭제, 1이면 _id 추가
+    if (req.body.heartStatus === 0) {
+      const unHeart = await userprojects.findOneAndUpdate(
+        { users_id: req.body.userId },
+        {
+          $unset: {
+            userLikeProject: req.body._id,
+          },
+        },
+        { upsert: true } // upsert 옵션 설정해서 필드가 없을경우 생성
+      );
+      // projects 필드의 projLike 값 갱신
+      heartProjLike.projLike = heartProjLike.projLike - 1;
+      heartProjLike.save();
+    }
+    if (req.body.heartStatus === 1) {
+      const onHeart = await userprojects.findOneAndUpdate(
+        { users_id: req.body.userId },
+        {
+          $set: {
+            userLikeProject: req.body._id,
+          },
+        },
+        { upsert: true } // upsert 옵션 설정해서 필드가 없을경우 생성
+      );
+      heartProjLike.projLike = heartProjLike.projLike + 1;
+      heartProjLike.save();
+    }
+  } catch (err) {
+    console.log('server.mjs heartClicked', err);
+  }
+});
+
+// RewardSelect에서 유저가 하트 클릭한 프로젝트인지 확인
+app.post('/userHeartClicked', async (req, res) => {
+  try {
+    // 클라이언트로부터 userId와 _id(proj_id)를 받아 userprojects 컬렉션에 userId로 찾아서 userLikeProject 필드에 _id (proj_id) 가 있는지 확인
+    const userProjectDocument = await userprojects.findOne({
+      users_id: req.body.userId,
+    });
+    if (userProjectDocument) {
+      // userLikeProject 필드(array)에서 projectId가 있는지 확인
+      const userLikeProject = userProjectDocument.userLikeProject || [];
+      const isProjectLiked = userLikeProject.includes(req.body._id);
+
+      if (isProjectLiked) {
+        // projectId가 userLikeProject 배열에 있음
+        return res.status(200).json({ Success: true });
+      } else {
+        // projectId가 userLikeProject 배열에 없음
+        return res.status(200).json({ Success: false });
+      }
+    } else {
+      // userId에 해당하는 문서가 없음
+      return res.status(200).json({ Success: false });
+    }
+  } catch (err) {
+    console.log('server.mjs userHeartClicked', err);
+  }
+});
+
 // 프로젝트 상태: projStatus
 app.get('/projStatus', async (req, res) => {
   try {
