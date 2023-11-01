@@ -25,7 +25,6 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-//const bodyParser = require('body-parser');
 
 //일반 로그인 부분
 app.post('/login', async (req, res) => {
@@ -71,18 +70,6 @@ app.post('/login', async (req, res) => {
             isAdmin: userFind.role === 0 ? false : true, // role이 0이면 일반사용자, 0이아니면 운영자
             isLogin: true,
           });
-        // token을 클라이언트로 보냄
-        /*         res.status(200).json({
-          loginSuccess: true,
-          message: '로그인 성공',
-          accessToken: accessToken,
-          userName: userFind.userName,
-          userAddr: userFind.userAddr,
-          userPhoneNum: userFind.userPhoneNum,
-          userMail: userFind.userMail,
-          _id: userFind._id,
-          userId: userFind.userId,
-        }); */
       });
     } else {
       res.status(200).json({
@@ -108,37 +95,53 @@ app.post('/login/kakao', async (req, res) => {
       const userFindKakao = await users
         .findOne({ userMail: req.body.userMail }) //findOne은 일치하는 하나의 값만 가져옴
         .exec();
-      await userFindKakao.generateToken((err, data) => {
+      await userFindKakao.generateToken((err, data, accessToken) => {
         if (err) return res.status(400).send(err);
         // token을 클라이언트로 보냄
-        return res.status(200).json({
-          kakaoLoginSuccess: true,
-          message: '로그인 성공',
-          token: userFindKakao.token,
-          userName: userFindKakao.userName,
-          _id: userFindKakao._id,
-        });
+        // 리프레쉬토큰을 쿠키에 저장
+        res
+          .cookie('refreshToken', userFindKakao.token, {
+            httpOnly: true, // HTTP Only 설정
+            secure: true, // HTTPS에서만 사용하도록 설정 (Production 환경에서)
+          })
+          .status(200)
+          .json({
+            kakaoLoginSuccess: true,
+            message: '로그인 성공',
+            accessToken: accessToken,
+            userName: userFindKakao.userName,
+            _id: userFindKakao._id,
+            isAdmin: userFindKakao.role === 0 ? false : true, // role이 0이면 일반사용자, 0이아니면 운영자
+            isLogin: true,
+          });
       });
     }
     if (userFind) {
-      await userFind.generateToken((err, data) => {
+      await userFind.generateToken((err, data, accessToken) => {
         if (err) return res.status(400).send(err);
         // token을 클라이언트로 보냄
-        return res.status(200).json({
-          kakaoLoginSuccess: true,
-          message: '로그인 성공',
-          token: userFind.token,
-          userName: userFind.userName,
-          _id: userFind._id,
-        });
+        // 리프레쉬토큰을 쿠키에 저장
+        res
+          .cookie('refreshToken', userFind.token, {
+            httpOnly: true, // HTTP Only 설정
+            secure: true, // HTTPS에서만 사용하도록 설정 (Production 환경에서)
+          })
+          .status(200)
+          .json({
+            kakaoLoginSuccess: true,
+            message: '로그인 성공',
+            accessToken: accessToken,
+            userName: userFind.userName,
+            _id: userFind._id,
+            isAdmin: userFind.role === 0 ? false : true, // role이 0이면 일반사용자, 0이아니면 운영자
+            isLogin: true,
+          });
       });
     }
   } catch (err) {
     console.log(err);
   }
 });
-
-// 네이버 로그인 부분
 
 // 로그아웃 부분
 app.post('/logout', async (req, res) => {
