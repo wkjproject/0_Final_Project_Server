@@ -845,13 +845,14 @@ app.get('/projStatus', async (req, res) => {
 app.post('/newProjStatus', async (req, res) => {
   try {
     const newProjStatusUpdate = await projects.findOneAndUpdate(
-      { proj_id: req.body.proj_id }, // middleAuth 의 foundUser
+      { proj_id: req.body.proj_id },
       {
         $set: {
           projStatus: req.body.projStatus,
         },
       }
     );
+
     if (newProjStatusUpdate) {
       return res.status(200).json({
         newProjStatusSuccess: true,
