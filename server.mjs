@@ -13,6 +13,9 @@ import bcrypt from 'bcrypt';
 import { middleAuth } from './middleWare/middleAuth.mjs';
 import nodemailer from 'nodemailer';
 import { randomCode } from './function/GenRandomCode.mjs';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const port = 5000;
 const app = express();
@@ -228,7 +231,7 @@ app.post('/pwCodeMailSend', async (req, res) => {
         // 비밀번호는 차후 보안강화예정
         auth: {
           user: 'team6mongo@zohomail.com',
-          pass: 'PsFe51X6pjhA',
+          pass: process.env.NODEMAILER_KEY,
         },
       });
       const mailOption = {
