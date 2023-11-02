@@ -147,7 +147,7 @@ app.post('/login/kakao', async (req, res) => {
 app.post('/logout', async (req, res) => {
   try {
     const logoutUser = await users.findOneAndUpdate(
-      { _id: req.body._id }, // middleAuth 의 foundUser
+      { _id: req.body._id },
       {
         $set: {
           token: '',
@@ -335,13 +335,31 @@ app.post('/fundingProject', async (req, res) => {
 // 마이페이지 펀딩프로젝트에서 사용자 결제 취소하는 부분
 app.post('/cancelPayDB', async (req, res) => {
   try {
-    // MongoDB에서 해당 funding_id와 일치하는 데이터를 삭제
-    const result = await fundings.deleteOne({
+    // MongoDB에서 해당 funding_id와 일치하는 데이터를 찾기
+    const result = await fundings.findOne({
       funding_id: req.body.funding_id,
     });
 
-    // 삭제 됐을 때
+    // 데이터를 찾았을때
     if (result) {
+      const projectMinus = await projects
+        .findOne({ proj_id: result.project_id })
+        .exec();
+      projectMinus.projFundUserCount = projectMinus.projFundUserCount - 1;
+      // projRewardName이 result.rewards 에 reward_id와 같은것만 데이터갱신
+      for (const proj of projectMinus.projReward) {
+        for (const reward of result.rewards) {
+          if (proj.projRewardName === reward.reward_id) {
+            projectMinus.projFundCollect =
+              projectMinus.projFundCollect - reward.price;
+            proj.projRewardAvailable += 1;
+          }
+        }
+      }
+      await projectMinus.save();
+      const deleteResult = await fundings.deleteOne({
+        funding_id: req.body.funding_id,
+      });
       res
         .status(200)
         .json({ cancelPaySuccess: true, message: '결제가 취소되었습니다.' });
@@ -416,6 +434,7 @@ app.post('/cancelLike', async (req, res) => {
   try {
     // 받아온 user_id로 userprojects에서 userLikeProject를 확인하고
     // 받아온 proj_id를 userLikeProject에서 제외시키고 갱신함
+    // cancelLike할 경우 projects 컬렉션에서 projLike -1 추가하기
     const userCancelLike = await userprojects.updateOne(
       { users_id: req.body.user_id },
       { $pull: { userLikeProject: req.body.proj_id } }
@@ -757,7 +776,8 @@ app.post('/userHeartClicked', async (req, res) => {
 // projectPay 결제하기 부분
 app.post('/pay', async (req, res) => {
   try {
-    const { user_id, project_id, rewards, fundingDate, projFund } = req.body;
+    const { user_id, project_id, rewardsList, fundingDate, projFund } =
+      req.body;
     const counter = await projidcounter.findOneAndUpdate(
       {},
       { $inc: { seqFundingId: 1 } },
@@ -765,29 +785,36 @@ app.post('/pay', async (req, res) => {
     );
     const nextSeq = counter.seqFundingId;
 
+    const fundingRewards = rewardsList.map((reward) => ({
+      reward_id: reward.projRewardName,
+      price: reward.projRewardAmount,
+      count: 1,
+    }));
+
     // fundings 컬렉션에 새로운 문서 추가
     const funding = await fundings.create({
       funding_id: nextSeq,
       user_id: user_id,
       project_id: project_id,
-      rewards: rewards,
+      rewards: fundingRewards,
       fundingDate: fundingDate,
     });
 
     // projects 컬렉션에서 projFundCollect에 projFund 더하고 projFundUserCount + 1
+    // projReward 에 projRewardName 이랑 rewards랑 동일한걸 찾아 projRewardAvailable -1
     const project = await projects.findOne({ proj_id: project_id });
     if (project) {
-      const projFundCollect = project.projFundCollect + projFund;
-      const projFundUserCount = project.projFundUserCount + 1;
-      await projects.updateOne(
-        { proj_id: project_id },
-        {
-          $set: {
-            projFundCollect,
-            projFundUserCount,
-          },
+      // projRewardName이 result.rewards 에 reward_id와 같은것만 데이터갱신
+      for (const proj of project.projReward) {
+        for (const reward of fundingRewards) {
+          if (proj.projRewardName === reward.reward_id) {
+            proj.projRewardAvailable -= 1;
+          }
         }
-      );
+      }
+      project.projFundCollect = project.projFundCollect + projFund;
+      project.projFundUserCount = project.projFundUserCount + 1;
+      await project.save();
     }
 
     // userprojects 컬렉션에서 user_id 검색해 userFundProject에 project_id 추가
