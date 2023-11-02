@@ -316,13 +316,11 @@ app.post('/fundingProject', async (req, res) => {
       .find({ user_id: req.body.user_id })
       .exec();
     const projectIds = userFindIds.map((item) => item.project_id);
-
     const matchingProjects = [];
     for (const projectId of projectIds) {
       const project = await projects.find({ proj_id: projectId }).exec();
       matchingProjects.push(project);
     }
-
     return res.status(200).json({
       fundings: userFindIds,
       projects: matchingProjects,
