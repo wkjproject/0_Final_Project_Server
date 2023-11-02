@@ -726,7 +726,7 @@ app.post('/heartClicked', async (req, res) => {
       );
       // projects 필드의 projLike 값 갱신
       heartProjLike.projLike = heartProjLike.projLike - 1;
-      heartProjLike.save();
+      await heartProjLike.save();
     }
     if (req.body.heartStatus === 1) {
       const onHeart = await userprojects.findOneAndUpdate(
@@ -739,7 +739,7 @@ app.post('/heartClicked', async (req, res) => {
         { upsert: true } // upsert 옵션 설정해서 필드가 없을경우 생성
       );
       heartProjLike.projLike = heartProjLike.projLike + 1;
-      heartProjLike.save();
+      await heartProjLike.save();
     }
   } catch (err) {
     console.log('server.mjs heartClicked', err);
