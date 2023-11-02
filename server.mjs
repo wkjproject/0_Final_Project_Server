@@ -25,7 +25,6 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-//const bodyParser = require('body-parser');
 
 //일반 로그인 부분
 app.post('/login', async (req, res) => {
@@ -71,18 +70,6 @@ app.post('/login', async (req, res) => {
             isAdmin: userFind.role === 0 ? false : true, // role이 0이면 일반사용자, 0이아니면 운영자
             isLogin: true,
           });
-        // token을 클라이언트로 보냄
-        /*         res.status(200).json({
-          loginSuccess: true,
-          message: '로그인 성공',
-          accessToken: accessToken,
-          userName: userFind.userName,
-          userAddr: userFind.userAddr,
-          userPhoneNum: userFind.userPhoneNum,
-          userMail: userFind.userMail,
-          _id: userFind._id,
-          userId: userFind.userId,
-        }); */
       });
     } else {
       res.status(200).json({
@@ -108,29 +95,47 @@ app.post('/login/kakao', async (req, res) => {
       const userFindKakao = await users
         .findOne({ userMail: req.body.userMail }) //findOne은 일치하는 하나의 값만 가져옴
         .exec();
-      await userFindKakao.generateToken((err, data) => {
+      await userFindKakao.generateToken((err, data, accessToken) => {
         if (err) return res.status(400).send(err);
         // token을 클라이언트로 보냄
-        return res.status(200).json({
-          kakaoLoginSuccess: true,
-          message: '로그인 성공',
-          token: userFindKakao.token,
-          userName: userFindKakao.userName,
-          _id: userFindKakao._id,
-        });
+        // 리프레쉬토큰을 쿠키에 저장
+        res
+          .cookie('refreshToken', userFindKakao.token, {
+            httpOnly: true, // HTTP Only 설정
+            secure: true, // HTTPS에서만 사용하도록 설정 (Production 환경에서)
+          })
+          .status(200)
+          .json({
+            kakaoLoginSuccess: true,
+            message: '로그인 성공',
+            accessToken: accessToken,
+            userName: userFindKakao.userName,
+            _id: userFindKakao._id,
+            isAdmin: userFindKakao.role === 0 ? false : true, // role이 0이면 일반사용자, 0이아니면 운영자
+            isLogin: true,
+          });
       });
     }
     if (userFind) {
-      await userFind.generateToken((err, data) => {
+      await userFind.generateToken((err, data, accessToken) => {
         if (err) return res.status(400).send(err);
         // token을 클라이언트로 보냄
-        return res.status(200).json({
-          kakaoLoginSuccess: true,
-          message: '로그인 성공',
-          token: userFind.token,
-          userName: userFind.userName,
-          _id: userFind._id,
-        });
+        // 리프레쉬토큰을 쿠키에 저장
+        res
+          .cookie('refreshToken', userFind.token, {
+            httpOnly: true, // HTTP Only 설정
+            secure: true, // HTTPS에서만 사용하도록 설정 (Production 환경에서)
+          })
+          .status(200)
+          .json({
+            kakaoLoginSuccess: true,
+            message: '로그인 성공',
+            accessToken: accessToken,
+            userName: userFind.userName,
+            _id: userFind._id,
+            isAdmin: userFind.role === 0 ? false : true, // role이 0이면 일반사용자, 0이아니면 운영자
+            isLogin: true,
+          });
       });
     }
   } catch (err) {
@@ -138,13 +143,11 @@ app.post('/login/kakao', async (req, res) => {
   }
 });
 
-// 네이버 로그인 부분
-
 // 로그아웃 부분
 app.post('/logout', async (req, res) => {
   try {
     const logoutUser = await users.findOneAndUpdate(
-      { _id: req.body._id }, // middleAuth 의 foundUser
+      { _id: req.body._id },
       {
         $set: {
           token: '',
@@ -313,13 +316,11 @@ app.post('/fundingProject', async (req, res) => {
       .find({ user_id: req.body.user_id })
       .exec();
     const projectIds = userFindIds.map((item) => item.project_id);
-
     const matchingProjects = [];
     for (const projectId of projectIds) {
       const project = await projects.find({ proj_id: projectId }).exec();
       matchingProjects.push(project);
     }
-
     return res.status(200).json({
       fundings: userFindIds,
       projects: matchingProjects,
@@ -332,13 +333,31 @@ app.post('/fundingProject', async (req, res) => {
 // 마이페이지 펀딩프로젝트에서 사용자 결제 취소하는 부분
 app.post('/cancelPayDB', async (req, res) => {
   try {
-    // MongoDB에서 해당 funding_id와 일치하는 데이터를 삭제
-    const result = await fundings.deleteOne({
+    // MongoDB에서 해당 funding_id와 일치하는 데이터를 찾기
+    const result = await fundings.findOne({
       funding_id: req.body.funding_id,
     });
 
-    // 삭제 됐을 때
+    // 데이터를 찾았을때
     if (result) {
+      const projectMinus = await projects
+        .findOne({ proj_id: result.project_id })
+        .exec();
+      projectMinus.projFundUserCount = projectMinus.projFundUserCount - 1;
+      // projRewardName이 result.rewards 에 reward_id와 같은것만 데이터갱신
+      for (const proj of projectMinus.projReward) {
+        for (const reward of result.rewards) {
+          if (proj.projRewardName === reward.reward_id) {
+            projectMinus.projFundCollect =
+              projectMinus.projFundCollect - reward.price;
+            proj.projRewardAvailable += 1;
+          }
+        }
+      }
+      await projectMinus.save();
+      const deleteResult = await fundings.deleteOne({
+        funding_id: req.body.funding_id,
+      });
       res
         .status(200)
         .json({ cancelPaySuccess: true, message: '결제가 취소되었습니다.' });
@@ -413,6 +432,7 @@ app.post('/cancelLike', async (req, res) => {
   try {
     // 받아온 user_id로 userprojects에서 userLikeProject를 확인하고
     // 받아온 proj_id를 userLikeProject에서 제외시키고 갱신함
+    // cancelLike할 경우 projects 컬렉션에서 projLike -1 추가하기
     const userCancelLike = await userprojects.updateOne(
       { users_id: req.body.user_id },
       { $pull: { userLikeProject: req.body.proj_id } }
@@ -591,6 +611,16 @@ app.post('/createProj', async (req, res) => {
   };
   const sendData = new projects(data);
   sendData.save();
+  // userprojects 컬렉션에 userId로 찾아서 userMadeProject 에 nextSeq 추가하기
+  const madeUser = await userprojects.findOneAndUpdate(
+    { users_id: userId },
+    {
+      $push: {
+        userMadeProject: nextSeq,
+      },
+    },
+    { upsert: true } // upsert 옵션 설정해서 필드가 없을경우 생성
+  );
   res.status(200).json({ success: true });
 });
 
@@ -685,7 +715,7 @@ app.post('/heartClicked', async (req, res) => {
       const unHeart = await userprojects.findOneAndUpdate(
         { users_id: req.body.userId },
         {
-          $unset: {
+          $pull: {
             userLikeProject: req.body._id,
           },
         },
@@ -699,7 +729,7 @@ app.post('/heartClicked', async (req, res) => {
       const onHeart = await userprojects.findOneAndUpdate(
         { users_id: req.body.userId },
         {
-          $set: {
+          $push: {
             userLikeProject: req.body._id,
           },
         },
@@ -741,6 +771,66 @@ app.post('/userHeartClicked', async (req, res) => {
   }
 });
 
+// projectPay 결제하기 부분
+app.post('/pay', async (req, res) => {
+  try {
+    const { user_id, project_id, rewardsList, fundingDate, projFund } =
+      req.body;
+    const counter = await projidcounter.findOneAndUpdate(
+      {},
+      { $inc: { seqFundingId: 1 } },
+      { new: true }
+    );
+    const nextSeq = counter.seqFundingId;
+
+    const fundingRewards = rewardsList.map((reward) => ({
+      reward_id: reward.projRewardName,
+      price: reward.projRewardAmount,
+      count: 1,
+    }));
+
+    // fundings 컬렉션에 새로운 문서 추가
+    const funding = await fundings.create({
+      funding_id: nextSeq,
+      user_id: user_id,
+      project_id: project_id,
+      rewards: fundingRewards,
+      fundingDate: fundingDate,
+    });
+
+    // projects 컬렉션에서 projFundCollect에 projFund 더하고 projFundUserCount + 1
+    // projReward 에 projRewardName 이랑 rewards랑 동일한걸 찾아 projRewardAvailable -1
+    const project = await projects.findOne({ proj_id: project_id });
+    if (project) {
+      // projRewardName이 result.rewards 에 reward_id와 같은것만 데이터갱신
+      for (const proj of project.projReward) {
+        for (const reward of fundingRewards) {
+          if (proj.projRewardName === reward.reward_id) {
+            proj.projRewardAvailable -= 1;
+          }
+        }
+      }
+      project.projFundCollect = project.projFundCollect + projFund;
+      project.projFundUserCount = project.projFundUserCount + 1;
+      await project.save();
+    }
+
+    // userprojects 컬렉션에서 user_id 검색해 userFundProject에 project_id 추가
+    await userprojects.updateOne(
+      { users_id: user_id },
+      {
+        $push: { userFundProject: project_id },
+      },
+      { upsert: true } // 없을경우 필드 추가
+    );
+
+    res.status(200).json({ Success: true });
+  } catch (err) {
+    console.error('Error in /pay:', err);
+    res.status(500).send('Internal Server Error');
+  }
+});
+
 // 프로젝트 상태: projStatus
 app.get('/projStatus', async (req, res) => {
   try {
@@ -762,7 +852,6 @@ app.post('/newProjStatus', async (req, res) => {
         },
       }
     );
-    
 
     if (newProjStatusUpdate) {
       return res.status(200).json({
