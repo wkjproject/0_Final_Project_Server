@@ -7,9 +7,10 @@ import { fundingsSchema } from './mongoSchema/fundingsSchema.mjs';
 import jwt from 'jsonwebtoken';
 import { projidcounterSchema } from './mongoSchema/projIdcounterSchema.mjs';
 import cron from 'node-cron';
+import dotenv from 'dotenv';
 
-const uri =
-  'mongodb+srv://team6mongo:team6mongo@finalprojectteam6.psuivab.mongodb.net/Database'; //제일 뒤에 userData가 Database 이름
+dotenv.config();
+const uri = process.env.MONGODB_URI;
 
 mongoose
   .connect(uri)
@@ -26,8 +27,8 @@ usersSchema.methods.generateToken = function (cb) {
   const refreshTokenExpTime = '1h'; // jwt 리프레쉬토큰 만료시간 지정
   const accessTokenExpTime = '10m'; // jwt 엑세스토큰 만료시간 지정
   const tokenExp = new Date();
-  const refreshSecretKey = 'team6mongoRefresh';
-  const accessSecretKey = 'team6mongoAccess';
+  const refreshSecretKey = process.env.JWT_REFRESH_SECRET;
+  const accessSecretKey = process.env.JWT_ACCESS_SECRET;
   tokenExp.setMinutes(tokenExp.getMinutes() + 60); // 현재 시간에 60분을 추가
   // 사용자의 ID를 토큰 페이로드로 설정합니다.
   const payload = {
@@ -54,8 +55,8 @@ usersSchema.methods.generateToken = function (cb) {
 
 // 엑세스 토큰 복호화, 엑세스 토큰 만료됐을때 리프레쉬토큰 쿠키로부터 받아와서 재발급
 usersSchema.statics.findByToken = async function (accessToken, refreshToken) {
-  const accessSecretKey = 'team6mongoAccess';
-  const refreshSecretKey = 'team6mongoRefresh';
+  const refreshSecretKey = process.env.JWT_REFRESH_SECRET;
+  const accessSecretKey = process.env.JWT_ACCESS_SECRET;
   const accessTokenExpTime = '10m'; // jwt 엑세스토큰 만료시간 지정
   try {
     const decoded = await jwt.verify(accessToken, accessSecretKey);
